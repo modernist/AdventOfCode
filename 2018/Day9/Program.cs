@@ -14,44 +14,56 @@ namespace Day9
             var players = int.Parse(words[0]);
             var rounds = int.Parse(words[6]);
 
-            Console.WriteLine(Part1(players, rounds));
+            //Console.WriteLine(Game(9, 25));
+            Console.WriteLine(Game(players, rounds));
 
-            Console.WriteLine(Part1(players, 100 * rounds));
+            Console.WriteLine(Game(players, 100 * rounds));
         }
 
-        static int Part1(int players, int rounds)
+        static long Game(int players, int rounds)
         {
-            var marbles = new List<int>( new [] { 0 });
-            var scores = Enumerable.Range(1, players).ToDictionary(i => i, i => 0);
+            var marbles = new LinkedList<long>();
+            var scores = Enumerable.Range(1, players).ToDictionary(i => i, i => 0l);
             var round = 1;
-            var current = 0;
-            var player = 0;
+            var current = marbles.AddFirst(0);
 
-            while (round <= rounds)
+            while (round < rounds)
             {
-                player = ((round - 1) % players) + 1;
+                var player = (round - 1) % players + 1;
                 if (round % 23 == 0)
                 {
-                    var next = (current - 7) % marbles.Count;
-                    if (next < 0) next += marbles.Count;
+                    var target = Rotate(current, -7);
                     scores[player] += round;
-                    scores[player] += marbles[next];
-                    marbles.RemoveAt(next);
-                    current = next;
+                    scores[player] += target.Value;
+                    current = target.Next;
+                    marbles.Remove(target);
                 }
                 else
                 {
-                    var next = (current + 1) % marbles.Count + 1;
-                    marbles.Insert(next, round);
-                    current = next;
+                    current = marbles.AddAfter(Rotate(current, 1), round);
                 }
                 round++;
 
                 //Console.WriteLine(string.Join(' ', marbles));
             }
 
+            return scores.Values.Max();
+        }
 
-             return scores.Values.Max();
+        static LinkedListNode<T> Rotate<T>(LinkedListNode<T> node, int count)
+        {
+            while (count < 0)
+            {
+                node = node.Previous ?? node.List.Last;
+                count++;
+            }
+
+            while (count-- > 0)
+            {
+                node = node.Next ?? node.List.First;
+            }
+
+            return node;
         }
     }
 }
