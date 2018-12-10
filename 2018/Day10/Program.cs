@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Day10
@@ -13,7 +14,7 @@ namespace Day10
         static void Main(string[] args)
         {
             var input = File.ReadAllLines("input.txt");
-            var points = input.Select(line => regex.Match(line.Trim()))
+            var points = input.Select(line => regex.Match(line))
                 .Select(match => new Point(int.Parse(match.Groups["x"].Value), int.Parse(match.Groups["y"].Value),
                     int.Parse(match.Groups["dx"].Value), int.Parse(match.Groups["dy"].Value)))
                 .ToArray();
@@ -37,26 +38,21 @@ namespace Day10
                 }
 
                 var rectangle = Rectangle(points);
-                var currentArea = rectangle.Width * rectangle.Height;
+                var currentArea = (long)rectangle.Width * rectangle.Height;
                 if (currentArea > area)
                 {
+                    //time to go back
                     foreach (var point in points)
                     {
                         point.Step(false);
                     }
                     rectangle = Rectangle(points);
-                    second--;
-
+                    message = BuildMessage(points, rectangle);
                     break;
                 }
-                else
-                {
-                    area = currentArea;
-                }
-
+                area = currentArea;
                 second++;
             }
-
 
             return (message, second);
         }
@@ -72,7 +68,20 @@ namespace Day10
 
         static string BuildMessage(IEnumerable<Point> points, (int Left, int Top, int Width, int Height) rectangle)
         {
-            return string.Empty;
+            //todo: if points is a SortedList<Point> every point mapped can be removed from the list and it will probably
+            //be the first in the list
+            var result = new StringBuilder(rectangle.Width * rectangle.Height);
+            for (var y = rectangle.Top; y <= rectangle.Top + rectangle.Height; y++)
+            {
+                for (var x = rectangle.Left; x <= rectangle.Left + rectangle.Width; x++)
+                {
+                    result.Append(points.Any(p => p.X == x && p.Y == y) ? '#' : ' ');
+                }
+
+                result.Append(Environment.NewLine);
+            }
+
+            return result.ToString();
         }
 
         class Point
@@ -81,32 +90,30 @@ namespace Day10
 
             public int Y { get; private set; }
 
-            public int SpeedX { get; }
+            private readonly int _speedX;
 
-            public int SpeedY { get; }
+            private readonly int _speedY;
 
-            public (int X, int Y) Step(bool forward = true)
+            public void Step(bool forward = true)
             {
                 if (forward)
                 {
-                    X += SpeedX;
-                    Y += SpeedY;
+                    X += _speedX;
+                    Y += _speedY;
                 }
                 else
                 {
-                    X -= SpeedX;
-                    Y -= SpeedY;
+                    X -= _speedX;
+                    Y -= _speedY;
                 }
-
-                return (X: X, Y: Y);
             }
 
             public Point(int x, int y, int speedX, int speedY)
             {
                 X = x;
                 Y = y;
-                SpeedX = speedX;
-                SpeedY = speedY;
+                _speedX = speedX;
+                _speedY = speedY;
             }
         }
     }
