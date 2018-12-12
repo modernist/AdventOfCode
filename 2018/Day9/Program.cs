@@ -23,7 +23,7 @@ namespace Day9
         static long Game(int players, int rounds)
         {
             var marbles = new LinkedList<long>();
-            var scores = Enumerable.Range(1, players).ToDictionary(i => i, i => 0l);
+            var scores = Enumerable.Range(1, players).ToDictionary(i => i, i => 0L);
             var round = 1;
             var current = marbles.AddFirst(0);
 
