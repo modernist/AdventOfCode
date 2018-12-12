@@ -14,6 +14,8 @@ namespace Day12
             var rules = input.Skip(2)
                 .Select(rule => rule.Split(new[] {' ', '=', '>'}, StringSplitOptions.RemoveEmptyEntries))
                 .ToDictionary(r => r[0], r => r[1]);
+
+            var next = Next(new Generation(state, state.IndexOf('#')), rules);
         }
 
         static Generation Next(Generation current, Dictionary<string, string> rules)
