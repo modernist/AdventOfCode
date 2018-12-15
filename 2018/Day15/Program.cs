@@ -13,12 +13,29 @@ namespace Day15
             var input = File.ReadAllLines("input.txt");
 
             Console.WriteLine(Part1(input));
+            Console.WriteLine(Part2(input));
         }
 
         static int Part1(string[] input)
         {
-            var game = new Game(input);
-            return game.Play();
+            var game = new Game(input, 3);
+            return game.Play().Score;
+        }
+
+        static int Part2(string[] input)
+        {
+            var elfAP = 3;
+            while (true)
+            {
+                var game = new Game(input, elfAP);
+                var result = game.Play();
+                if (result.NoElfCasualties)
+                {
+                    return result.Score;
+                }
+
+                elfAP++;
+            }
         }
 
         class Game
@@ -26,9 +43,13 @@ namespace Day15
             private readonly (int Row, int Col)[] _eligibleOffsets = new[] { (-1, 0), (0, -1), (0, 1), (1, 0) }; //in reading order
             private State _state;
 
-            public Game(string[] input)
+            public Game(string[] input, int elfAP)
             {
                 _state = Parse(input);
+                foreach (var elf in _state.Units.OfType<Elf>())
+                {
+                    elf.AP = elfAP;
+                }
             }
 
             public override string ToString()
@@ -48,17 +69,19 @@ namespace Day15
                 return sb.ToString();
             }
 
-            public int Play()
+            public (bool NoElfCasualties, int Score) Play()
             {
                 var rounds = 0;
-                Console.WriteLine(this);
-                Console.WriteLine();
+                var elves = _state.Units.OfType<Elf>().Count();
+
+                //Console.WriteLine(this);
+                //Console.WriteLine();
                 while (Step())
                 {
                     rounds++;
-                    Console.WriteLine(this);
+                    //Console.WriteLine(this);
                 }
-                return (rounds - 1) * _state.Units.Sum(u => u.HP);
+                return ((_state.Units.OfType<Elf>().Count() == elves), (rounds - 1) * _state.Units.Sum(u => u.HP));
             }
 
             private bool Step()
@@ -94,11 +117,11 @@ namespace Day15
 
                 var target = targets.OrderBy(t => t.target.Position).FirstOrDefault();
                 var nextMove = targets.Where(t => t.target == target.target).Select(t => t.nextMove).OrderBy(t => t).First();
-                //var nextBlock = _state.Grid[nextMove.Row, nextMove.Col];
-                //_state.Grid[nextMove.Row, nextMove.Col] = unit;
-                //_state.Grid[unit.Position.Row, unit.Position.Column] = nextBlock;
-                (_state.Grid[nextMove.Row, nextMove.Col], _state.Grid[unit.Position.Row, unit.Position.Column]) =
-                    (_state.Grid[unit.Position.Row, unit.Position.Column], _state.Grid[nextMove.Row, nextMove.Col]);
+                var nextBlock = _state.Grid[nextMove.Row, nextMove.Col];
+                _state.Grid[nextMove.Row, nextMove.Col] = unit;
+                _state.Grid[unit.Position.Row, unit.Position.Column] = nextBlock;
+                //(_state.Grid[nextMove.Row, nextMove.Col], _state.Grid[unit.Position.Row, unit.Position.Column]) =
+                //    (_state.Grid[unit.Position.Row, unit.Position.Column], _state.Grid[nextMove.Row, nextMove.Col]);
                 unit.Position = nextMove;
                 return true;
             }
