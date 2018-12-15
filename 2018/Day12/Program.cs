@@ -15,18 +15,26 @@ namespace Day12
                 .Select(rule => rule.Split(new[] {' ', '=', '>'}, StringSplitOptions.RemoveEmptyEntries))
                 .ToDictionary(r => r[0], r => r[1]);
 
-            var current = new Generation(state, state.IndexOf('#'));
-
-            var part1 = Timelapse(current, 20, rules);
+            var part1 = Timelapse(new Generation(state, state.IndexOf('#')), 20, rules);
             Console.WriteLine(part1);
+            var part2 = Timelapse(new Generation(state, state.IndexOf('#')), 50_000_000_000, rules);
+            Console.WriteLine(part2);
         }
 
-        static int Timelapse(Generation current, int generations, Dictionary<string, string> rules)
+        static long Timelapse(Generation current, long generations, Dictionary<string, string> rules)
         {
             var state = current;
-            for (int gen = 1; gen <= generations; gen++)
+
+            for (long gen = 1; gen <= generations; gen++)
             {
+                var old = state;
                 state = Next(state, rules);
+                if (state.State == old.State)
+                {
+                    var shiftLeft = state.First - old.First;
+                    state = new Generation(state.State, state.First + (generations - gen) * shiftLeft);
+                    break;
+                }
             }
 
             return state.State.Select((p, i) => p == '#' ? i + state.First : 0).Sum();
@@ -48,9 +56,9 @@ namespace Day12
         {
             public string State { get; set; }
 
-            public int First { get; set; }
+            public long First { get; set; }
 
-            public Generation(string state, int first)
+            public Generation(string state, long first)
             {
                 State = state;
                 First = first;
