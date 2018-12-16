@@ -120,8 +120,6 @@ namespace Day15
                 var nextBlock = _state.Grid[nextMove.Row, nextMove.Col];
                 _state.Grid[nextMove.Row, nextMove.Col] = unit;
                 _state.Grid[unit.Position.Row, unit.Position.Column] = nextBlock;
-                //(_state.Grid[nextMove.Row, nextMove.Col], _state.Grid[unit.Position.Row, unit.Position.Column]) =
-                //    (_state.Grid[unit.Position.Row, unit.Position.Column], _state.Grid[nextMove.Row, nextMove.Col]);
                 unit.Position = nextMove;
                 return true;
             }
