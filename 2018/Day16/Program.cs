@@ -2,16 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Day16
 {
     class Program
     {
-        static Regex instructionRegex = new Regex(@"^(?<op>\d+)\s(?<A>\d+)\s(?<B>\d+)\s(?<C>\d+)", RegexOptions.Compiled);
-        static Regex registersRegex = new Regex(@"\[(?<A>\d+),\s(?<B>\d+),\s(?<C>\d+),\s(?<D>\d+)\]", RegexOptions.Compiled);
-        private static Dictionary<string, Func<int[], int[], int[]>> opCodes;
+        static readonly Regex instructionRegex = new Regex(@"^(?<op>\d+)\s(?<A>\d+)\s(?<B>\d+)\s(?<C>\d+)", RegexOptions.Compiled);
+        static readonly Regex registersRegex = new Regex(@"\[(?<A>\d+),\s(?<B>\d+),\s(?<C>\d+),\s(?<D>\d+)\]", RegexOptions.Compiled);
+        static readonly Dictionary<string, Func<int[], int[], int[]>> opCodes;
 
         static Program()
         {
@@ -109,10 +108,12 @@ namespace Day16
             var samples = new List<Sample>();
             for (int i = 0; i < input.Length;)
             {
-                var sample = new Sample();
-                sample.Before = registersRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray();
-                sample.Instruction = instructionRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray();
-                sample.After = registersRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray();
+                var sample = new Sample()
+                {
+                    Before = registersRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray(),
+                    Instruction = instructionRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray(),
+                    After = registersRegex.Match(input[i++]).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray()
+                };
                 samples.Add(sample);
             }
 
