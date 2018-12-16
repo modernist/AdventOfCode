@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Day16
@@ -40,6 +41,7 @@ namespace Day16
             var input1 = input.Substring(0, split).Split(new[] {'\r', '\n'}, StringSplitOptions.RemoveEmptyEntries);
             var input2 = input.Substring(split).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             Console.WriteLine(Part1(input1));
+            Console.WriteLine(Part2(input1, input2));
         }
 
         static int Part1(string[] input)
@@ -59,6 +61,47 @@ namespace Day16
             }
 
             return sampleOps.Count(so => so.Value >= 3);
+        }
+
+        static int Part2(string[] sampleInput, string[] program)
+        {
+            var samples = ParseSamples(sampleInput);
+            var possibleMappings = opCodes.Keys.ToDictionary(opCode => opCode, opCode => new List<int>(Enumerable.Range(0, 16)));
+            var mappings = new Dictionary<int, string>();
+
+            foreach (var op in opCodes)
+            {
+                foreach (var sample in samples.Where(s => possibleMappings[op.Key].Contains(s.Instruction[0])).ToList())
+                {
+                    var result = op.Value(sample.Before, sample.Instruction);
+                    if (!result.SequenceEqual(sample.After))
+                    {
+                        possibleMappings[op.Key].Remove(sample.Instruction[0]);
+                    }
+                }
+            }
+
+            while (possibleMappings.Any())
+            {
+                var determined = possibleMappings.First(mapping => mapping.Value.Count == 1);
+                var mappedOp = determined.Value[0];
+                mappings.Add(mappedOp, determined.Key);
+                possibleMappings.Remove(determined.Key);
+                foreach (var mapping in possibleMappings)
+                {
+                    mapping.Value.Remove(mappedOp);
+                }
+            }
+
+            var instructions = program.Select(instruction => instructionRegex.Match(instruction).Groups.Skip(1).Select(g => int.Parse(g.Value)).ToArray());
+            var registers = new int[4];
+
+            foreach (var instruction in instructions)
+            {
+                registers = opCodes[mappings[instruction[0]]](registers, instruction);
+            }
+
+            return registers[0];
         }
 
         static List<Sample> ParseSamples(string[] input)
