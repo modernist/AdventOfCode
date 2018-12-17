@@ -9,20 +9,27 @@ namespace Day17
 {
     class Program
     {
-        static Regex coordRegex = new Regex(@"^(?:x=(?<x>[0-9.]+),\sy=(?<y>[0-9.]+))|(?:y=(?<y>[0-9.]+),\sx=(?<x>[0-9.]+))$");
+        static Regex coordRegex = new Regex(@"^(?:x=(?<x>[0-9.]+),\sy=(?<y>[0-9.]+))|(?:y=(?<y>[0-9.]+),\sx=(?<x>[0-9.]+))$", RegexOptions.Compiled);
 
         static void Main(string[] args)
         {
             var input = File.ReadAllLines("input.txt").Select(line => coordRegex.Match(line).Groups)
                 .Select(g => (x: g["x"].Value, y: g["y"].Value));
 
-            Console.WriteLine(Part1(input, (0, 500)));
+            var simulation = new Simulation(input, (0, 500));
+
+            Console.WriteLine(Part1(simulation));
+            Console.WriteLine(Part2(simulation));
         }
 
-        static int Part1(IEnumerable<(string, string)> input, (int row, int col) source)
+        static int Part1(Simulation simulation)
         {
-            var simulation = new Simulation(input);
-            return 0;
+            return simulation.Count(block => block is Water || block is Reachable);
+        }
+
+        static int Part2(Simulation simulation)
+        {
+            return simulation.Count(block => block is Water);
         }
 
         class Simulation
@@ -32,15 +39,86 @@ namespace Day17
             private int Width => _borders.right - _borders.left + 1;
             private int Height => _borders.bottom - _borders.top + 1;
 
-            public Simulation(IEnumerable<(string x, string y)> input)
+            private bool IsValidGridPosition(int row, int col)
             {
-                Parse(input);
+                return row >= 0 && row < Height && col >= 0 && col < Width;
             }
 
-            void Run((int row, int col) source)
+            public Simulation(IEnumerable<(string x, string y)> input, (int row, int col) source)
             {
+                Parse(input);
+                //Console.WriteLine(simulation);
                 var sourceCol = source.col - _borders.left;
+                Flow(0, sourceCol);
+                //Console.WriteLine("---------------------------------");
+                //Console.WriteLine(simulation);
+            }
 
+            public int Count(Func<Block, bool> predicate)
+            {
+                return _grid.Cast<Block>().Count(predicate);
+            }
+
+            private void Flow(int row, int col)
+            {
+                if (!(_grid[row, col] is Sand))
+                {
+                    return;
+                }
+
+                var blockRow = _borders.top + row;
+                _grid[row, col] = new Reachable();
+                if (blockRow == _borders.bottom)
+                {
+                    return;
+                }
+
+                Flow(row + 1, col);
+
+                if (_grid[row + 1, col] is Clay || _grid[row + 1, col] is Water)
+                {
+                    if (col > 0)
+                    {
+                        Flow(row, col - 1);
+                    }
+
+                    if (col < Width - 1)
+                    {
+                        Flow(row, col + 1);
+                    }
+                }
+
+                if (CanRetainWater(row, col))
+                {
+                    for (var x = col; IsValidGridPosition(row, x) && _grid[row, x] is Reachable; x--)
+                    {
+                        _grid[row, x] = new Water();
+                    }
+                    for (var x = col; IsValidGridPosition(row, x) && _grid[row, x] is Reachable; x++)
+                    {
+                        _grid[row, x] = new Water();
+                    }
+                }
+            }
+
+            bool CanRetainWater(int row, int col)
+            {
+                for (var x = col; IsValidGridPosition(row, x) && !(_grid[row, x] is Clay); x--)
+                {
+                    if (_grid[row, x] is Sand || _grid[row + 1, x] is Reachable)
+                    {
+                        return false;
+                    }
+                }
+                for (var x = col; IsValidGridPosition(row, x) && !(_grid[row, x] is Clay); x++)
+                {
+                    if (_grid[row, x] is Sand || _grid[row + 1, x] is Reachable)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             private void Parse(IEnumerable<(string x, string y)> input)
@@ -70,8 +148,8 @@ namespace Day17
                     }
                 }
 
-                var minX = coords.Min(p => p.col);
-                var maxX = coords.Max(p => p.col);
+                var minX = coords.Min(p => p.col) - 1; // expand 1 to the left
+                var maxX = coords.Max(p => p.col) + 1; // expand 1 to the right
                 var minY = coords.Min(p => p.row);
                 var maxY = coords.Max(p => p.row);
 
@@ -80,7 +158,9 @@ namespace Day17
                 {
                     for (var col = minX; col <= maxX; col++)
                     {
-                        _grid[row - minY, col - minX] = coords.Contains((row, col)) ? (Block) new Clay() : new Sand();
+                        _grid[row - minY, col - minX] = coords.Contains((row, col))
+                            ? (Block) new Clay()
+                            : new Sand();
                     }
                 }
 
@@ -108,7 +188,6 @@ namespace Day17
 
         abstract class Block
         {
-            public (int X, int Y) Position { get; set; }
         }
 
         class Sand : Block
