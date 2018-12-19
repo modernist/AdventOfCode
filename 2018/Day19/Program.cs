@@ -45,9 +45,10 @@ namespace Day19
                     Parameters = (new[] {match.Groups["A"].Value, match.Groups["B"].Value, match.Groups["C"].Value})
                         .Select(i => int.Parse(i)).ToArray()
                 };
-            });
+            }).ToArray();
 
-
+            Console.WriteLine(Part1(ipIndex, instructions));
+            Console.WriteLine(Part2(ipIndex, instructions));
         }
 
         static int Part1(int ipIndex, Instruction[] instructions)
@@ -61,7 +62,30 @@ namespace Day19
 
             while (state.IP >= 0 && state.IP < programSize)
             {
-                state = state.Execute(instructions[state.IP]);
+                state.Execute(instructions[state.IP]);
+            }
+
+            return state.Registers[0];
+        }
+
+        static int Part2(int ipIndex, Instruction[] instructions)
+        {
+            var programSize = instructions.Length;
+            var state = new ExecutionState()
+            {
+                IPIndex = ipIndex,
+                Registers = new int[6]
+            };
+
+            state.Registers[0] = 1;
+            int limit = 1000;
+            while (state.IP >= 0 && state.IP < programSize)
+            {
+                state.Execute(instructions[state.IP]);
+                if (limit-- > 0)
+                {
+                    Console.WriteLine(state);
+                }
             }
 
             return state.Registers[0];
@@ -75,9 +99,17 @@ namespace Day19
 
             public int[] Registers { get; set; }
 
-            public ExecutionState Execute(Instruction instruction)
+            public void Execute(Instruction instruction)
             {
-                return this;
+                Registers[IPIndex] = IP;
+                Registers = opCodes[instruction.Op](Registers, instruction.Parameters);
+                IP = Registers[IPIndex];
+                IP++;
+            }
+
+            public override string ToString()
+            {
+                return $"IP: {IP}, Registers:[{string.Join(" ", Registers)}]";
             }
         }
 
