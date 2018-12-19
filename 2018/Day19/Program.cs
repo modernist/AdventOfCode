@@ -48,7 +48,9 @@ namespace Day19
             }).ToArray();
 
             Console.WriteLine(Part1(ipIndex, instructions));
-            Console.WriteLine(Part2(ipIndex, instructions));
+            Console.WriteLine(Part2BruteForce(ipIndex, instructions));
+            Console.WriteLine(Part2());
+            Console.Read();
         }
 
         static int Part1(int ipIndex, Instruction[] instructions)
@@ -68,7 +70,7 @@ namespace Day19
             return state.Registers[0];
         }
 
-        static int Part2(int ipIndex, Instruction[] instructions)
+        static int Part2BruteForce(int ipIndex, Instruction[] instructions)
         {
             var programSize = instructions.Length;
             var state = new ExecutionState()
@@ -78,17 +80,30 @@ namespace Day19
             };
 
             state.Registers[0] = 1;
-            int limit = 1000;
-            while (state.IP >= 0 && state.IP < programSize)
+            int limit = 0;
+            while (state.IP >= 0 && state.IP < programSize && limit++ < 1000)
             {
                 state.Execute(instructions[state.IP]);
-                if (limit-- > 0)
-                {
-                    Console.WriteLine(state);
-                }
+                Console.WriteLine(state);
             }
 
             return state.Registers[0];
+        }
+
+        static int Part2()
+        {
+            //find the sum of factors
+            var input = 10551306;
+            var result = 0;
+            for (var i = 1; i <= input; i++)
+            {
+                if (input % i == 0)
+                {
+                    result += i;
+                }
+            }
+
+            return result;
         }
 
         class ExecutionState
