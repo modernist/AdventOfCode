@@ -80,11 +80,11 @@ namespace Day19
             };
 
             state.Registers[0] = 1;
-            int limit = 0;
-            while (state.IP >= 0 && state.IP < programSize && limit++ < 1000)
+            //int limit = 0;
+            while (state.IP >= 0 && state.IP < programSize /*&& limit++ < 1000*/)
             {
                 state.Execute(instructions[state.IP]);
-                Console.WriteLine(state);
+                //Console.WriteLine(state);
             }
 
             return state.Registers[0];
