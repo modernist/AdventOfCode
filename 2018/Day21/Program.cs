@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Day19
+namespace Day21
 {
     class Program
     {
@@ -42,14 +42,13 @@ namespace Day19
                 return new Instruction()
                 {
                     Op = match.Groups["op"].Value,
-                    Parameters = (new[] {match.Groups["A"].Value, match.Groups["B"].Value, match.Groups["C"].Value})
+                    Parameters = (new[] { match.Groups["A"].Value, match.Groups["B"].Value, match.Groups["C"].Value })
                         .Select(i => int.Parse(i)).ToArray()
                 };
             }).ToArray();
 
             Console.WriteLine(Part1(ipIndex, instructions));
-            Console.WriteLine(Part2BruteForce(ipIndex, instructions));
-            Console.WriteLine(Part2());
+            Console.WriteLine(Part2(ipIndex, instructions));
             Console.Read();
         }
 
@@ -65,12 +64,17 @@ namespace Day19
             while (state.IP >= 0 && state.IP < programSize)
             {
                 state.Execute(instructions[state.IP]);
+                if (state.IP == 28) //eqrr 3 0 1 -> exit condition
+                {
+                    Console.WriteLine(state);
+                    break;
+                }
             }
 
-            return state.Registers[0];
+            return state.Registers[3];
         }
 
-        static int Part2BruteForce(int ipIndex, Instruction[] instructions)
+        static int Part2(int ipIndex, Instruction[] instructions)
         {
             var programSize = instructions.Length;
             var state = new ExecutionState()
@@ -78,32 +82,21 @@ namespace Day19
                 IPIndex = ipIndex,
                 Registers = new int[6]
             };
+            var seen = new SortedSet<int>();
 
-            state.Registers[0] = 1;
-            //int limit = 0;
-            while (state.IP >= 0 && state.IP < programSize /*&& limit++ < 1000*/)
+            while (state.IP >= 0 && state.IP < programSize)
             {
                 state.Execute(instructions[state.IP]);
-                //Console.WriteLine(state);
-            }
-
-            return state.Registers[0];
-        }
-
-        static int Part2()
-        {
-            //find the sum of factors
-            var input = 10551306;
-            var result = 0;
-            for (var i = 1; i <= input; i++)
-            {
-                if (input % i == 0)
+                if (state.IP == 10) //loop start
                 {
-                    result += i;
+                    if (!seen.Add(state.Registers[4]))
+                    {
+                        break;
+                    }
                 }
             }
 
-            return result;
+            return seen.Last();
         }
 
         class ExecutionState
