@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -12,17 +13,29 @@ namespace Day01
 
             Console.WriteLine(Part1(input));
 
+            Console.WriteLine(Part2(input));
+
             Console.Read();
         }
 
         static int Part1(int[] modules)
         {
-            return modules.Aggregate(0, (total, current) => total + ModuleFuel(current));
+            return modules.Aggregate(0, (total, current) => total + ModuleFuel(current).First());
         }
 
-        static int ModuleFuel(int i)
+        static int Part2(int[] modules)
         {
-            return (int)Math.Floor(i / 3.0) - 2;
+            return modules.Aggregate(0, (total, current) => total + ModuleFuel(current).Sum());
+        }
+
+        static IEnumerable<int> ModuleFuel(int mass)
+        {
+            var fuel = (int)Math.Floor(mass / 3.0) - 2;
+            while(fuel > 0)
+            {
+                yield return fuel;
+                fuel = (int)Math.Floor(fuel / 3.0) - 2;
+            }
         }
     }
 }
