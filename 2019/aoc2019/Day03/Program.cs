@@ -8,7 +8,7 @@ namespace Day03
     class Program
     {
         private static Dictionary<char, (int xdiff, int ydiff)> Offsets;
-        private static List<Point> Intersections = new List<Point>();
+        
         static void Main(string[] args)
         {
             var input = File.ReadAllLines("input.txt").Select(line =>
@@ -19,15 +19,23 @@ namespace Day03
 
             Console.WriteLine(Part1(grid));
 
+            Console.WriteLine(Part2(grid));
+
             Console.Read();
         }
 
-        static int Part1(Dictionary<Point, (bool wire1, bool wire2)> grid)
+        static int Part1(Dictionary<Point, (bool wire1, int wire1Steps, bool wire2, int wire2Steps)> grid)
         {
             return grid.Where(p => p.Value.wire1 && p.Value.wire2)
                 .Select(p => p.Key.ManhattanDistance(0, 0))
                 .OrderBy(p => p)
                 .First();
+        }
+
+        static int Part2(Dictionary<Point, (bool wire1, int wire1Steps, bool wire2, int wire2Steps)> grid)
+        {
+            return grid.Where(p => p.Value.wire1 && p.Value.wire2)
+                .Select(p => p.Value.wire1Steps + p.Value.wire2Steps).Min();
         }
 
         static Dictionary<char, (int xdiff, int ydiff)> BuildOffsets()
@@ -39,33 +47,47 @@ namespace Day03
             return offsets;
         }
 
-        static Dictionary<Point, (bool wire1, bool wire2)> BuildGrid(IEnumerable<Segment> wire1,
+        static Dictionary<Point, (bool wire1, int wire1Steps, bool wire2, int wire2Steps)> BuildGrid(IEnumerable<Segment> wire1,
             IEnumerable<Segment> wire2)
         {
-            var grid = new Dictionary<Point, (bool wire1, bool wire2)>();
+            var grid = new Dictionary<Point, (bool wire1, int wire1Steps, bool wire2, int wire2Steps)>();
 
             Point current = new Point(0, 0);
+            int steps = 0;
             foreach (var segment in wire1)
             {
                 foreach (var point in segment.Follow(current))
                 {
-                    grid[point] = (true, false);
+                    steps++;
+
+                    if (!grid.TryGetValue(point, out var wires))
+                    {
+                        grid[point] = (true, steps, false, 0);
+                    }
+                    else
+                    {
+                        grid[point] = (true, wires.wire1Steps, false, 0);
+                    }
+
                     current = point;
                 }
             }
 
             current = new Point(0, 0);
+            steps = 0;
             foreach (var segment in wire2)
             {
                 foreach (var point in segment.Follow(current))
                 {
+                    steps++;
+
                     if (!grid.TryGetValue(point, out var wires))
                     {
-                        grid[point] = (false, true);
+                        grid[point] = (false, 0, true, steps);
                     }
                     else
                     {
-                        grid[point] = (wires.wire1, true);
+                        grid[point] = (wires.wire1, wires.wire1Steps, true, wires.wire2Steps == 0 ? steps : wires.wire2Steps);
                     }
 
                     current = point;
