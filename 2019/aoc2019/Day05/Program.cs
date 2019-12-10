@@ -16,6 +16,8 @@ namespace Day05
 
             Console.WriteLine(Part1(input.ToArray()));
 
+            Console.WriteLine(Part2(input.ToArray()));
+
             Console.Read();
         }
 
@@ -23,6 +25,14 @@ namespace Day05
         {
             var output = new List<int>();
             var computer = new IntcodeComputer(program, 0, () => 1, (o) => output.Add(o));
+            computer.Run();
+            return output.Last();
+        }
+
+        static int Part2(int[] program)
+        {
+            var output = new List<int>();
+            var computer = new IntcodeComputer(program, 0, () => 5, (o) => output.Add(o));
             computer.Run();
             return output.Last();
         }
@@ -58,6 +68,10 @@ namespace Day05
             Multiply = 2,
             Input = 3,
             Output = 4,
+            JumpNonZero = 5,
+            JumpZero = 6,
+            LessThan = 7,
+            Equals = 8,
             Terminate = 99
         }
 
@@ -78,6 +92,10 @@ namespace Day05
             _opCodes.Add(OpCode.Multiply, () => { Value(3) = Value(1) * Value(2); PC += 4; });
             _opCodes.Add(OpCode.Input, () => { Value(1) = InputFunc(); PC += 2; });
             _opCodes.Add(OpCode.Output, () => { OutputFunc(Value(1)); PC += 2;});
+            _opCodes.Add(OpCode.JumpNonZero, () => { PC = (Value(1) != 0) ? Value(2) : PC + 3; });
+            _opCodes.Add(OpCode.JumpZero, () => { PC = (Value(1) == 0) ? Value(2) : PC + 3; });
+            _opCodes.Add(OpCode.LessThan, () => { Value(3) = (Value(1) < Value(2)) ? 1 : 0; PC +=4; });
+            _opCodes.Add(OpCode.Equals, () => { Value(3) = (Value(1) == Value(2)) ? 1 : 0; PC += 4; });
             _opCodes.Add(OpCode.Terminate, () => { });
         }
 
