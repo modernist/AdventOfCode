@@ -15,12 +15,27 @@ namespace Day06
 
             Console.WriteLine(Part1(input));
 
+            Console.WriteLine(Part2(input));
+
             Console.Read();
         }
 
         static int Part1(IDictionary<string, string> orbits)
         {
             return orbits.Keys.Select(item => TraverseOrbits(orbits, item).Count()).Sum();
+        }
+
+        static int Part2(IDictionary<string, string> orbits)
+        {
+            var pathToYou = new Stack<string>(TraverseOrbits(orbits, "YOU")); // YOU -> ... -> COM
+            var pathToSan = new Stack<string>(TraverseOrbits(orbits, "SAN")); // SAN -> ... -> COM
+            while (pathToYou.Peek() == pathToSan.Peek())
+            {
+                pathToYou.Pop();
+                pathToSan.Pop();
+            }
+
+            return pathToYou.Count + pathToSan.Count;
         }
 
         static IEnumerable<string> TraverseOrbits(IDictionary<string, string> orbits, string item)
