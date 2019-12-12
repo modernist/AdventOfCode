@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Day07
 {
@@ -15,24 +17,25 @@ namespace Day07
                 .Select(int.Parse);
 
             Console.WriteLine(Part1(input.ToArray()));
+
+            Console.WriteLine(Part2(input.ToArray()));
+
             Console.Read();
         }
 
         static int Part1(int[] program)
         {
             var input = new[] { 0, 1, 2, 3, 4 };
-
             int max = 0;
 
             foreach (var sequence in Permute(input))
             {
-                var output = new[] { 0, 0, 0, 0, 0};
-                
+                var output = new[] { 0, 0, 0, 0, 0 };
+
                 IEnumerable<int> InputFactory(int index)
                 {
                     yield return sequence[index];
                     yield return output[(index == 0) ? 0 : index - 1];
-                    yield break;
                 }
 
                 void Output(int index, int value)
@@ -40,13 +43,69 @@ namespace Day07
                     output[index] = value;
                 }
 
-                for (int i = 0; i < 5; i++)
+                for (var i = 0; i < 5; i++)
                 {
                     var stage = new IntcodeComputer((int[])program.Clone(), 0, () => InputFactory(i), (o) => Output(i, o));
                     stage.Run();
                 }
 
                 var result = output[4];
+                if (result > max)
+                {
+                    max = result;
+                }
+            }
+
+            return max;
+        }
+
+        static int Part2(int[] program)
+        {
+            var phases = new[] { 5, 6, 7, 8, 9 };
+            var pipes = Enumerable.Range(0, 5).Select(i => new BlockingCollection<int>(new ConcurrentQueue<int>())).ToArray(); // connect a stage's output to the input of the next one
+            var max = 0;
+
+            IEnumerable<int> Input(int index)
+            {
+                while (true)
+                    yield return pipes[(index == 0) ? 4 : index - 1].Take();
+            }
+
+            void Output(int index, int value)
+            {
+                pipes[index].Add(value);
+            }
+
+            var stages = Enumerable.Range(0, 5).Select(i => new IntcodeComputer((int[])program.Clone(), 0, () => Input(i), (o) => Output(i, o))).ToArray();
+
+            foreach (var sequence in Permute(phases))
+            {
+                for (var i = 0; i < sequence.Length; i++)
+                {
+                    stages[i].Program = (int[]) program.Clone();
+                    stages[i].PC = 0;
+                    while(pipes[(i + sequence.Length - 1) % sequence.Length].TryTake(out _)); // clear queue
+                    pipes[(i + sequence.Length - 1) % sequence.Length].Add(sequence[i]); // feed the phase to each amp
+                }
+
+                pipes[sequence.Length - 1].Add(0); // initial input for first amp
+
+                //var stepsRun = true;
+                //do
+                //{
+                //    stepsRun = false;
+                //    foreach (var stage in stages)
+                //    {
+                //        stepsRun |= stage.Step();
+                //    }
+                //} while (stepsRun);
+
+                Parallel.ForEach(stages, (stage, _, l) =>
+                {
+                    stage.Run();
+                });
+
+                var result = pipes[4].Single();
                 if (result > max)
                 {
                     max = result;
@@ -84,7 +143,7 @@ namespace Day07
 
     public class IntcodeComputer
     {
-        public int[] Program { get; }
+        public int[] Program { get; set; }
 
         public int PC { get; set; }
 
@@ -106,6 +165,18 @@ namespace Day07
             }
         }
 
+        public bool Step()
+        {
+            var op = (OpCode)(Program[PC] % 100);
+            if (op == OpCode.Terminate)
+            {
+                return false;
+            }
+
+            _opCodes[op]();
+            return true;
+        }
+
         enum OpCode
         {
             Add = 1,
@@ -121,6 +192,7 @@ namespace Day07
 
         private Dictionary<OpCode, Action> _opCodes = new Dictionary<OpCode, Action>();
         private IEnumerator<int> _inputEnumerator;
+        private bool _inputAvailable = true;
 
         public IntcodeComputer(int[] program, int pc = 0, Func<IEnumerable<int>> inputFunc = null, Action<int> outputFunc = null)
         {
@@ -134,7 +206,7 @@ namespace Day07
 
         private int NextInput()
         {
-            _inputEnumerator.MoveNext();
+            _inputAvailable = _inputEnumerator.MoveNext();
             return _inputEnumerator.Current;
         }
 
@@ -142,7 +214,7 @@ namespace Day07
         {
             _opCodes.Add(OpCode.Add, () => { Value(3) = Value(1) + Value(2); PC += 4; });
             _opCodes.Add(OpCode.Multiply, () => { Value(3) = Value(1) * Value(2); PC += 4; });
-            _opCodes.Add(OpCode.Input, () => { Value(1) = NextInput(); PC += 2; });
+            _opCodes.Add(OpCode.Input, () => { if(_inputAvailable) { Value(1) = NextInput(); PC += 2; }});
             _opCodes.Add(OpCode.Output, () => { OutputFunc(Value(1)); PC += 2; });
             _opCodes.Add(OpCode.JumpNonZero, () => { PC = (Value(1) != 0) ? Value(2) : PC + 3; });
             _opCodes.Add(OpCode.JumpZero, () => { PC = (Value(1) == 0) ? Value(2) : PC + 3; });
