@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Microsoft.VisualBasic.CompilerServices;
 using Math = System.Math;
 
 namespace Day10
@@ -24,7 +26,22 @@ namespace Day10
         {
             var asteroids = input.ToDictionary(p => p, p => new List<Point>());
 
-            return 0;
+            foreach (var origin in input)
+            {
+                foreach (var destination in input)
+                {
+                    if(origin.Equals(destination))
+                        continue;
+
+                    var originToDestination = new Line(origin, destination);
+                    if (!input.Except(new [] { origin, destination }).Any(obstacle => originToDestination.Contains(obstacle)))
+                    {
+                        asteroids[origin].Add(destination);
+                    }
+                }
+            }
+
+            return asteroids.Max(asteroid => asteroid.Value.Count);
         }
     }
 
@@ -101,6 +118,11 @@ namespace Day10
             {
                 return X * 65535 + Y;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"({X},{Y})";
         }
     }
 }
