@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Microsoft.VisualBasic.CompilerServices;
 using Math = System.Math;
 
 namespace Day10
@@ -17,12 +15,41 @@ namespace Day10
                 .Where(p => p.C == '#')
                 .Select(p => new Point(p.X, p.Y));
 
-            Console.WriteLine(Part1(input));
+            var map = BuildAsteriskVisibilityMap(input);
+
+            Console.WriteLine(Part1(map));
+
+            Console.WriteLine(Part2(map));
 
             Console.Read();
         }
 
-        static int Part1(IEnumerable<Point> input)
+        static int Part1(Dictionary<Point, List<Point>> map)
+        {
+            return map.Max(asteroid => asteroid.Value.Count);
+        }
+
+        static int Part2(Dictionary<Point, List<Point>> map)
+        {
+            var (station, visible) = map.OrderByDescending(asteroid => asteroid.Value.Count).First();
+
+            // adjust visible asterisks by offsetting around the station, generate all lines from the station
+            var lines = visible.Select(other => new Line(new Point(0, 0), new Point(other.X - station.X, other.Y - station.Y))).ToList();
+
+            //calculate polar coordinates direction for each line, assuming the station is at (0,0), order descending to move clockwise
+            var targets = lines.OrderBy(line =>
+            {
+                var slope = line.Slope();
+                return -Math.Atan2(slope.Dx, slope.Dy);
+            });
+
+            var last = targets.ElementAt(199);
+
+            // adjust location based on station location
+            return (last.B.X + station.X) * 100 + (last.B.Y + station.Y);
+        }
+
+        private static Dictionary<Point, List<Point>> BuildAsteriskVisibilityMap(IEnumerable<Point> input)
         {
             var asteroids = input.ToDictionary(p => p, p => new List<Point>());
 
@@ -30,18 +57,18 @@ namespace Day10
             {
                 foreach (var destination in input)
                 {
-                    if(origin.Equals(destination))
+                    if (origin.Equals(destination))
                         continue;
 
                     var originToDestination = new Line(origin, destination);
-                    if (!input.Except(new [] { origin, destination }).Any(obstacle => originToDestination.Contains(obstacle)))
+                    if (!input.Except(new[] {origin, destination}).Any(obstacle => originToDestination.Contains(obstacle)))
                     {
                         asteroids[origin].Add(destination);
                     }
                 }
             }
 
-            return asteroids.Max(asteroid => asteroid.Value.Count);
+            return asteroids;
         }
     }
 
@@ -82,6 +109,23 @@ namespace Day10
                     ? A.Y <= c.Y && c.Y <= B.Y
                     : B.Y <= c.Y && c.Y <= A.Y;
             }
+        }
+
+        public (int Dx, int Dy) Slope()
+        {
+            var (dx, dy) = (B.X - A.X, B.Y - A.Y);
+            var gcd = Math.Abs(Gcd(dx, dy));
+            return (dx / gcd, dy / gcd);
+        }
+
+        private int Gcd(int a, int b)
+        {
+            while (b != 0)
+            {
+                (a, b) = (b, a % b);
+            }
+
+            return a;
         }
     }
 
