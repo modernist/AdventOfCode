@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace Day11
 {
@@ -17,24 +18,101 @@ namespace Day11
 
             Console.WriteLine(Part1(input.ToArray()));
 
-            //Console.WriteLine(Part2(input.ToArray()));
+            Console.WriteLine(Part2(input.ToArray()));
 
             Console.Read();
         }
 
         static int Part1(long[] program)
         {
-            return 0;
+            var painter = new HullPainter(program, 0);
+            painter.Run();
+            return painter.PaintedBlocks;
+        }
+
+        static int Part2(long[] program)
+        {
+            var painter = new HullPainter(program, 1);
+            painter.Run();
+            painter.ShowPaintedArea();
+            return painter.PaintedBlocks;
         }
     }
 
     public class HullPainter
     {
         private IntcodeComputer _computer;
-        private Point _currentLocation = new Point(0, 0);
-        private int _currentColor = 0; // 0: black, 1: white
+        private Point _currentLocation;
+        private int _currentColor; // 0: black, 1: white
         private char _currentDirection = '^';
-        private Dictionary<Point, int> _grid = new Dictionary<Point, int>(); // location -> color
+        private Dictionary<Point, int> _grid; // location -> color
+        private static Dictionary<char, (int xdiff, int ydiff)> Offsets = BuildOffsets();
+        private static Dictionary<(char, int), char> Turns = BuildTurns();
+
+        public HullPainter(long[] program, int initalColor)
+        {
+            _computer = new IntcodeComputer(program, inputFunc: NextMove);
+            _grid = new Dictionary<Point, int>();
+            _currentLocation = new Point(0, 0);
+            _currentColor = initalColor;
+            _grid[_currentLocation] = _currentColor;
+        }
+
+        public void Run()
+        {
+            _computer.Run();
+        }
+
+        public int PaintedBlocks => _grid.Count;
+
+        public void ShowPaintedArea()
+        {
+            var (minX, maxX) = (_grid.Keys.Min(k => k.X), _grid.Keys.Max(k => k.X));
+            var (minY, maxY) = (_grid.Keys.Min(k => k.Y), _grid.Keys.Max(k => k.Y));
+
+            for (var y = maxY; y >= minY; y--)
+            {
+                for (var x = minX; x <= maxX; x++)
+                {
+                    Console.Write(ReadColor(new Point(x, y)) == 0 ? '.' : '#');
+                }
+                Console.WriteLine();
+            }
+        }
+
+        private long NextMove()
+        {
+            if (_computer.Output.Count > 0)
+            {
+                ProcessOutput();
+            }
+
+            return ReadColor(_currentLocation);
+        }
+
+        private long ReadColor(Point point)
+        {
+            var result = 0L;
+
+            if (_grid.TryGetValue(point, out var currentColor))
+            {
+                result = currentColor;
+            }
+
+            return result;
+        }
+
+        private void ProcessOutput()
+        {
+            _currentColor = (int)_computer.Output.Take();
+            var turn = (int)_computer.Output.Take();
+
+            _grid[_currentLocation] = _currentColor;
+
+            _currentDirection = Turns[(_currentDirection, turn)];
+            var (dx, dy) = Offsets[_currentDirection];
+            _currentLocation = new Point(_currentLocation.X + dx, _currentLocation.Y + dy);
+        }
 
         private static Dictionary<char, (int xdiff, int ydiff)> BuildOffsets()
         {
@@ -76,13 +154,17 @@ namespace Day11
 
         public BlockingCollection<long> Output { get; } = new BlockingCollection<long>(new ConcurrentQueue<long>());
 
+        public bool Halted { get; private set; }
+
         public void Run()
         {
+            Halted = false;
             while (true)
             {
                 var op = (OpCode)(Program[PC] % 100);
                 if (op == OpCode.Terminate)
                 {
+                    Halted = true;
                     break;
                 }
 
@@ -95,6 +177,7 @@ namespace Day11
             var op = (OpCode)(Program[PC] % 100);
             if (op == OpCode.Terminate)
             {
+                Halted = true;
                 return false;
             }
 
@@ -117,7 +200,7 @@ namespace Day11
         }
 
         private Dictionary<OpCode, Action> _opCodes = new Dictionary<OpCode, Action>();
-        
+
         public IntcodeComputer(long[] program, int pc = 0, int rb = 0, Func<long> inputFunc = null,
             Action<long> outputFunc = null)
         {
@@ -128,6 +211,7 @@ namespace Day11
             InputFunc = inputFunc ?? Input.Take;
             OutputFunc = outputFunc ?? Output.Add;
             InitOpCodes();
+            Halted = false;
         }
 
         private void InitOpCodes()
