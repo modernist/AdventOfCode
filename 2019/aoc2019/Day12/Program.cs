@@ -23,6 +23,8 @@ namespace Day12
 
             Console.WriteLine(Part1(input));
 
+            Console.WriteLine(Part2(input));
+
             Console.Read();
         }
 
@@ -31,6 +33,43 @@ namespace Day12
             var state = Step(moons.ToArray()).Skip(999).First();
             return state.Sum(moon => moon.Energy);
         }
+
+        static long Part2(IEnumerable<Moon> moons)
+        {
+            var cycleStepsPerDimension = new long[3];
+            var dimensionSelectors = new Func<Moon, (float, float)>[]
+                {
+                    m => (m.Position.X, m.Velocity.X),
+                    m => (m.Position.Y, m.Velocity.Y),
+                    m => (m.Position.Z, m.Velocity.Z)
+                };
+
+            for (int i = 0; i < 3; i++)
+            {
+                var states = new HashSet<((float, float), (float, float), (float, float), (float, float))>();
+                foreach (var step in Step(moons.ToArray()))
+                {
+                    var m0 = dimensionSelectors[i](step[0]);
+                    var m1 = dimensionSelectors[i](step[1]);
+                    var m2 = dimensionSelectors[i](step[2]);
+                    var m3 = dimensionSelectors[i](step[3]);
+                    var state = (m0, m1, m2, m3);
+
+                    if (states.Contains(state))
+                    {
+                        break;
+                    }
+                    states.Add(state);
+                }
+                cycleStepsPerDimension[i] = states.Count;
+            }
+
+            return Lcm(cycleStepsPerDimension[0], Lcm(cycleStepsPerDimension[1], cycleStepsPerDimension[2]));
+        }
+
+        static long Gcd(long a, long b) => b == 0 ? a : Gcd(b, a % b);
+
+        static long Lcm(long a, long b) => a / Gcd(a, b) * b;
 
         static IEnumerable<Moon[]> Step(Moon[] moons)
         {
