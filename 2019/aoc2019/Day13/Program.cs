@@ -17,7 +17,9 @@ namespace Day13
 
             Console.WriteLine(Part1(input.ToArray()));
 
-            //Console.WriteLine(Part2(input.ToArray()));
+            Console.WriteLine(Part2(input.ToArray()));
+
+            Console.Read();
         }
 
         static int Part1(long[] program)
@@ -26,12 +28,22 @@ namespace Day13
             cp.Run();
             return cp.Blocks;
         }
+
+        static long Part2(long[] program)
+        {
+            var cp = new CarePackage(program);
+            cp.Run(2);
+            return cp.Score;
+        }
     }
 
     public class CarePackage
     {
         private IntcodeComputer _computer;
         private Dictionary<(long row, long col), long> _grid; // location -> type
+        public long Score { get; private set; }
+        private long _paddlePosition;
+        private long _ballPosition;
 
         public CarePackage(long[] program)
         {
@@ -39,17 +51,48 @@ namespace Day13
             _grid = new Dictionary<(long row, long col), long>();
         }
 
-        public void Run()
+        public void Run(long quarters = 0)
         {
-            _computer.Run();
-            while (_computer.Output.Count > 0)
+            if (quarters > 0)
             {
-                var col = _computer.Output.Take();
-                var row = _computer.Output.Take();
-                var type = _computer.Output.Take();
-                _grid[(row, col)] = type;
+                _computer.Program[0] = quarters;
+                _computer.InputFunc = () => Direction;
+            }
+
+            while (true)
+            {
+                _computer.Step();
+                if (_computer.Output.Count == 3)
+                {
+                    var col = _computer.Output.Take();
+                    var row = _computer.Output.Take();
+                    var type = _computer.Output.Take();
+                    if (col == -1 && row == 0)
+                    {
+                        Score = type;
+                    }
+                    else
+                    {
+                        _grid[(row, col)] = type;
+                        if (type == 3)
+                        {
+                            _paddlePosition = col;
+                        }
+                        if (type == 4)
+                        {
+                            _ballPosition = col;
+                        }
+                    }
+                }
+                if (_computer.Halted)
+                    break;
             }
         }
+
+        private long Direction =>
+            _ballPosition < _paddlePosition ? -1 :
+            _ballPosition > _paddlePosition ? 1 :
+            0;
 
         public int Blocks => _grid.Where(p => p.Value == 2).Count();
     }
